@@ -1,73 +1,63 @@
-# Welcome to your Lovable project
+# Home Med+ Tracker
 
-## Project info
+A professional home medicine and health tracking application for families.
 
-**URL**: https://lovable.dev/projects/f83864c8-17aa-4900-bcb2-7c47f5536e06
+## Features
 
-## How can I edit this code?
+- Medicine management and tracking
+- Health metric logging and monitoring
+- User-friendly dashboard
+- Responsive design
 
-There are several ways of editing your application.
+## Tech Stack
 
-**Use Lovable**
+- **Frontend**: React, TypeScript, Vite, Tailwind CSS, shadcn/ui
+- **Backend**: Node.js, Express
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/f83864c8-17aa-4900-bcb2-7c47f5536e06) and start prompting.
+## Getting Started
 
-Changes made via Lovable will be committed automatically to this repo.
+### Prerequisites
 
-**Use your preferred IDE**
+- Node.js (v16 or higher)
+- npm or yarn
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### Installation
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+1. Clone the repository:
+   ```bash
+   git clone <repository-url>
+   cd med-track
+   ```
 
-Follow these steps:
+2. Install dependencies for the monorepo:
+   ```bash
+   npm install
+   ```
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+3. Start the backend:
+   ```bash
+   npm run dev:backend
+   ```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+4. In a new terminal, start the frontend:
+   ```bash
+   npm run dev:frontend
+   ```
 
-# Step 3: Install the necessary dependencies.
-npm i
+5. Open [http://localhost:8080](http://localhost:8080) in your browser.
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+## Project Structure
 
-**Edit a file directly in GitHub**
+- `backend/`: Express.js API server
+- `frontend/`: React application with Vite
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Contributing
 
-**Use GitHub Codespaces**
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Submit a pull request
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## License
 
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/f83864c8-17aa-4900-bcb2-7c47f5536e06) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+This project is private.

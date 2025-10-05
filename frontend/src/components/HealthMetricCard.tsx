@@ -1,19 +1,9 @@
 import { TrendingUp, TrendingDown, Minus, Heart, Droplet, Weight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-
-interface HealthMetric {
-  id: string;
-  type: 'blood_pressure' | 'blood_sugar' | 'weight';
-  value: string;
-  unit: string;
-  date: string;
-  time: string;
-  trend?: 'up' | 'down' | 'stable';
-  status?: 'normal' | 'high' | 'low';
-}
+import { type HealthMetric as APIHealthMetric } from "@/lib/api";
 
 interface HealthMetricCardProps {
-  metric: HealthMetric;
+  metric: APIHealthMetric;
   onClick?: () => void;
 }
 

@@ -1,114 +1,127 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertTriangle, Plus, Heart, DollarSign, Package, Activity } from "lucide-react";
+import { AlertTriangle, Plus, Heart, DollarSign, Package, Activity, LogOut, WifiOff, Settings } from "lucide-react";
 import MedicineCard from "@/components/MedicineCard";
 import HealthMetricCard from "@/components/HealthMetricCard";
 import EmptyState from "@/components/EmptyState";
 import AddMedicineModal from "@/components/AddMedicineModal";
 import LogHealthMetricModal from "@/components/LogHealthMetricModal";
-
-// Sample data - in real app this would come from API
-const sampleMedicines = [
-  {
-    id: "1",
-    name: "Aspirin",
-    dosage: "500mg",
-    frequency: "Twice daily",
-    currentStock: 8,
-    threshold: 10,
-    totalQuantity: 30,
-    nextDue: "Today, 2:00 PM"
-  },
-  {
-    id: "2", 
-    name: "Vitamin D3",
-    dosage: "1000 IU",
-    frequency: "Once daily",
-    currentStock: 25,
-    threshold: 7,
-    totalQuantity: 60,
-    nextDue: "Tomorrow, 8:00 AM"
-  },
-  {
-    id: "3",
-    name: "Blood Pressure Medication",
-    dosage: "10mg",
-    frequency: "Once daily", 
-    currentStock: 2,
-    threshold: 5,
-    totalQuantity: 30,
-    nextDue: "Today, 8:00 AM"
-  }
-];
-
-const sampleHealthMetrics = [
-  {
-    id: "1",
-    type: "blood_pressure" as const,
-    value: "120/80",
-    unit: "mmHg", 
-    date: "Today",
-    time: "9:30 AM",
-    trend: "stable" as const,
-    status: "normal" as const
-  },
-  {
-    id: "2",
-    type: "blood_sugar" as const,
-    value: "95",
-    unit: "mg/dL",
-    date: "Today", 
-    time: "8:15 AM",
-    trend: "down" as const,
-    status: "normal" as const
-  },
-  {
-    id: "3",
-    type: "weight" as const,
-    value: "70.2",
-    unit: "kg",
-    date: "Yesterday",
-    time: "7:00 AM", 
-    trend: "up" as const,
-    status: "normal" as const
-  }
-];
+import GlobalTimingSettings from "@/components/GlobalTimingSettings";
+import TodaysIntakes from "@/components/TodaysIntakes";
+import {
+  useMedicines,
+  useCreateMedicine,
+  useUpdateMedicine,
+  useDeleteMedicine,
+  useHealthMetrics,
+  useCreateHealthMetric,
+  useHealthCheck
+} from "@/hooks/useApi";
+import { type Medicine, type HealthMetric } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 export default function Dashboard() {
-  const [medicines, setMedicines] = useState(sampleMedicines);
-  const [healthMetrics, setHealthMetrics] = useState(sampleHealthMetrics);
   const [isAddMedicineOpen, setIsAddMedicineOpen] = useState(false);
   const [isLogMetricOpen, setIsLogMetricOpen] = useState(false);
-  const [editingMedicine, setEditingMedicine] = useState(null);
+  const [isTimingSettingsOpen, setIsTimingSettingsOpen] = useState(false);
+  const [editingMedicine, setEditingMedicine] = useState<Medicine | null>(null);
+
+  // Auth hooks
+  const { user, profile, signOut } = useAuth();
+  const navigate = useNavigate();
+
+  // API hooks
+  const { data: medicines = [], isLoading: medicinesLoading, error: medicinesError } = useMedicines();
+  const { data: healthMetrics = [], isLoading: metricsLoading, error: metricsError } = useHealthMetrics();
+  const { data: isConnected = false } = useHealthCheck();
+
+  // Mutations
+  const createMedicineMutation = useCreateMedicine();
+  const updateMedicineMutation = useUpdateMedicine();
+  const deleteMedicineMutation = useDeleteMedicine();
+  const createHealthMetricMutation = useCreateHealthMetric();
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate('/');
+  };
 
   const lowStockMedicines = medicines.filter(med => med.currentStock <= med.threshold);
   const outOfStockMedicines = medicines.filter(med => med.currentStock === 0);
-  const totalExpenses = 245.50; // Sample data
 
-  const handleAddMedicine = (medicine: any) => {
-    if (editingMedicine) {
-      setMedicines(prev => prev.map(m => m.id === medicine.id ? medicine : m));
-      setEditingMedicine(null);
-    } else {
-      setMedicines(prev => [...prev, medicine]);
+  const handleAddMedicine = async (medicine: Omit<Medicine, 'id' | 'created_at' | 'updated_at'>) => {
+    try {
+      if (editingMedicine) {
+        await updateMedicineMutation.mutateAsync({
+          id: editingMedicine.id,
+          data: medicine
+        });
+        setEditingMedicine(null);
+      } else {
+        await createMedicineMutation.mutateAsync(medicine);
+      }
+      setIsAddMedicineOpen(false);
+    } catch (error) {
+      console.error('Failed to save medicine:', error);
+      // TODO: Show error toast
     }
-    setIsAddMedicineOpen(false);
   };
 
-  const handleEditMedicine = (medicine: any) => {
+  const handleEditMedicine = (medicine: Medicine) => {
     setEditingMedicine(medicine);
     setIsAddMedicineOpen(true);
   };
 
-  const handleDeleteMedicine = (id: string) => {
-    setMedicines(prev => prev.filter(m => m.id !== id));
+  const handleDeleteMedicine = async (id: string) => {
+    try {
+      await deleteMedicineMutation.mutateAsync(id);
+    } catch (error) {
+      console.error('Failed to delete medicine:', error);
+      // TODO: Show error toast
+    }
   };
 
-  const handleLogMetric = (metric: any) => {
-    setHealthMetrics(prev => [metric, ...prev]);
-    setIsLogMetricOpen(false);
+  const handleLogMetric = async (metric: Omit<HealthMetric, 'id' | 'created_at'>) => {
+    try {
+      await createHealthMetricMutation.mutateAsync(metric);
+      setIsLogMetricOpen(false);
+    } catch (error) {
+      console.error('Failed to log health metric:', error);
+      // TODO: Show error toast
+    }
   };
+
+  // Show loading state
+  if (medicinesLoading || metricsLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading your health data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (medicinesError || metricsError) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <WifiOff className="h-12 w-12 text-destructive mx-auto mb-4" />
+          <h2 className="text-xl font-semibold mb-2">Connection Error</h2>
+          <p className="text-muted-foreground mb-4">
+            Unable to connect to the server. Please check your connection and try again.
+          </p>
+          <Button onClick={() => window.location.reload()}>
+            Retry
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -116,18 +129,49 @@ export default function Dashboard() {
       <header className="border-b border-border bg-card">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0">
-            <div className="min-w-0">
-              <h1 className="text-xl sm:text-2xl font-bold text-foreground truncate">Home Med+ Tracker</h1>
-              <p className="text-sm sm:text-base text-muted-foreground hidden sm:block">Manage your family's health with confidence</p>
+            <div className="min-w-0 flex items-center gap-3">
+              <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
+              <div>
+                <h1 className="text-xl sm:text-2xl font-bold text-foreground truncate">Home Med+ Tracker</h1>
+                <p className="text-sm sm:text-base text-muted-foreground hidden sm:block">
+                  Manage your family's health with confidence
+                  {!isConnected && <span className="text-destructive ml-2">(Offline)</span>}
+                </p>
+              </div>
             </div>
-            <Button 
-              onClick={() => setIsAddMedicineOpen(true)}
-              className="btn-medical shrink-0 w-full sm:w-auto"
-              size="sm"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Medicine
-            </Button>
+            <div className="flex items-center space-x-4">
+              <span className="text-sm text-muted-foreground">
+                Welcome, {profile?.full_name || user?.email}
+              </span>
+              <Button 
+                onClick={() => setIsAddMedicineOpen(true)}
+                className="btn-medical shrink-0 w-full sm:w-auto"
+                size="sm"
+                disabled={!isConnected}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Medicine
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setIsTimingSettingsOpen(true)}
+                className="shrink-0"
+                disabled={!isConnected}
+              >
+                <Settings className="h-4 w-4 mr-2" />
+                Settings
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={handleLogout}
+                className="shrink-0"
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Logout
+              </Button>
+            </div>
           </div>
         </div>
       </header>
@@ -290,6 +334,11 @@ export default function Dashboard() {
             )}
           </div>
         </div>
+
+        {/* Today's Intakes */}
+        <div className="mb-4 sm:mb-8">
+          <TodaysIntakes />
+        </div>
       </main>
 
       {/* Add Medicine Modal */}
@@ -308,6 +357,12 @@ export default function Dashboard() {
         isOpen={isLogMetricOpen}
         onClose={() => setIsLogMetricOpen(false)}
         onSave={handleLogMetric}
+      />
+
+      {/* Global Timing Settings Modal */}
+      <GlobalTimingSettings
+        isOpen={isTimingSettingsOpen}
+        onClose={() => setIsTimingSettingsOpen(false)}
       />
     </div>
   );

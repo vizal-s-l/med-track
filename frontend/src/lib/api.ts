@@ -1,6 +1,6 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || 
   (import.meta.env.PROD 
-    ? 'https://medtrack-backend.onrender.com/api' 
+    ? 'https://medtrack-wndy.onrender.com/api' 
     : 'http://localhost:5000/api');
 
 import { supabase } from './supabase';

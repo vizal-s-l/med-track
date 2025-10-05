@@ -5,11 +5,13 @@ import { Badge } from "@/components/ui/badge";
 interface Medicine {
   id: string;
   name: string;
-  dosage: string;
-  frequency: string;
-  currentStock: number;
-  threshold: number;
   totalQuantity: number;
+  currentStock: number;
+  price: number;
+  morning_qty: number;
+  afternoon_qty: number;
+  night_qty: number;
+  threshold: number;
   lastTaken?: string;
   nextDue?: string;
 }
@@ -46,7 +48,11 @@ export default function MedicineCard({ medicine, onEdit, onDelete }: MedicineCar
           </div>
           <div>
             <h3 className="font-semibold text-foreground">{medicine.name}</h3>
-            <p className="text-sm text-muted-foreground">{medicine.dosage} • {medicine.frequency}</p>
+            <p className="text-sm text-muted-foreground">
+              {medicine.morning_qty > 0 && `${medicine.morning_qty} morning`}
+              {medicine.afternoon_qty > 0 && ` • ${medicine.afternoon_qty} afternoon`}
+              {medicine.night_qty > 0 && ` • ${medicine.night_qty} night`}
+            </p>
           </div>
         </div>
         

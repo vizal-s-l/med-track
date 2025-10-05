@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 interface AddMedicineModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (medicine: any) => void;
+  onSave: (medicine: any) => Promise<void>;
   editingMedicine?: any;
 }
 
@@ -19,21 +19,23 @@ export default function AddMedicineModal({ isOpen, onClose, onSave, editingMedic
   const { toast } = useToast();
   const [formData, setFormData] = useState({
     name: editingMedicine?.name || '',
-    dosage: editingMedicine?.dosage || '',
-    frequency: editingMedicine?.frequency || '',
     totalQuantity: editingMedicine?.totalQuantity || '',
     currentStock: editingMedicine?.currentStock || '',
+    price: editingMedicine?.price || '',
+    morning_qty: editingMedicine?.morning_qty || '',
+    afternoon_qty: editingMedicine?.afternoon_qty || '',
+    night_qty: editingMedicine?.night_qty || '',
     threshold: editingMedicine?.threshold || '',
     notes: editingMedicine?.notes || '',
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name || !formData.frequency || !formData.totalQuantity || !formData.currentStock) {
+    if (!formData.name || !formData.totalQuantity || !formData.currentStock) {
       toast({
         title: "Missing Information", 
-        description: "Please fill in all required fields (name, frequency, total quantity, current stock).",
+        description: "Please fill in all required fields (name, total tablets, current stock).",
         variant: "destructive",
       });
       return;
@@ -44,19 +46,32 @@ export default function AddMedicineModal({ isOpen, onClose, onSave, editingMedic
       ...formData,
       totalQuantity: parseInt(formData.totalQuantity) || 0,
       currentStock: parseInt(formData.currentStock) || 0,
+      price: parseFloat(formData.price) || 0,
+      morning_qty: parseInt(formData.morning_qty) || 0,
+      afternoon_qty: parseInt(formData.afternoon_qty) || 0,
+      night_qty: parseInt(formData.night_qty) || 0,
       threshold: parseInt(formData.threshold) || 0,
     };
 
-    onSave(medicine);
-    setFormData({
-      name: '', dosage: '', frequency: '', totalQuantity: '', 
-      currentStock: '', threshold: '', notes: ''
-    });
-    
-    toast({
-      title: editingMedicine ? "Medicine Updated" : "Medicine Added",
-      description: `${formData.name} has been ${editingMedicine ? 'updated' : 'added'} successfully.`,
-    });
+    try {
+      await onSave(medicine);
+      setFormData({
+        name: '', totalQuantity: '', currentStock: '', price: '',
+        morning_qty: '', afternoon_qty: '', night_qty: '', threshold: '', notes: ''
+      });
+      
+      toast({
+        title: editingMedicine ? "Medicine Updated" : "Medicine Added",
+        description: `${formData.name} has been ${editingMedicine ? 'updated' : 'added'} successfully.`,
+      });
+    } catch (error) {
+      console.error('Failed to save medicine:', error);
+      toast({
+        title: "Error",
+        description: `Failed to ${editingMedicine ? 'update' : 'add'} medicine. Please try again.`,
+        variant: "destructive",
+      });
+    }
   };
 
   const handleChange = (field: string, value: string) => {
@@ -103,41 +118,8 @@ export default function AddMedicineModal({ isOpen, onClose, onSave, editingMedic
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label htmlFor="dosage" className="text-sm font-medium">
-                  Dosage
-                </Label>
-                <Input
-                  id="dosage"
-                  value={formData.dosage}
-                  onChange={(e) => handleChange('dosage', e.target.value)}
-                  placeholder="e.g., 500mg (optional)"
-                  className="form-input"
-                />
-              </div>
-              <div>
-                <Label htmlFor="frequency" className="text-sm font-medium">
-                  Frequency *
-                </Label>
-                <Select value={formData.frequency} onValueChange={(value) => handleChange('frequency', value)}>
-                  <SelectTrigger className="form-input">
-                    <SelectValue placeholder="Select frequency" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Once daily">Once daily</SelectItem>
-                    <SelectItem value="Twice daily">Twice daily</SelectItem>
-                    <SelectItem value="Three times daily">Three times daily</SelectItem>
-                    <SelectItem value="Four times daily">Four times daily</SelectItem>
-                    <SelectItem value="As needed">As needed</SelectItem>
-                    <SelectItem value="Weekly">Weekly</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-3 gap-3">
-              <div>
                 <Label htmlFor="totalQuantity" className="text-sm font-medium">
-                  Total Pills *
+                  Total Tablets *
                 </Label>
                 <Input
                   id="totalQuantity"
@@ -150,6 +132,24 @@ export default function AddMedicineModal({ isOpen, onClose, onSave, editingMedic
                   required
                 />
               </div>
+              <div>
+                <Label htmlFor="price" className="text-sm font-medium">
+                  Price per Unit
+                </Label>
+                <Input
+                  id="price"
+                  type="number"
+                  step="0.01"
+                  value={formData.price}
+                  onChange={(e) => handleChange('price', e.target.value)}
+                  placeholder="0.50"
+                  className="form-input"
+                  min="0"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label htmlFor="currentStock" className="text-sm font-medium">
                   Current Stock *
@@ -178,6 +178,56 @@ export default function AddMedicineModal({ isOpen, onClose, onSave, editingMedic
                   className="form-input"
                   min="0"
                 />
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-sm font-medium mb-2 block">
+                Daily Dosage Schedule
+              </Label>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <Label htmlFor="morning_qty" className="text-xs text-muted-foreground">
+                    Morning
+                  </Label>
+                  <Input
+                    id="morning_qty"
+                    type="number"
+                    value={formData.morning_qty}
+                    onChange={(e) => handleChange('morning_qty', e.target.value)}
+                    placeholder="0"
+                    className="form-input"
+                    min="0"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="afternoon_qty" className="text-xs text-muted-foreground">
+                    Afternoon
+                  </Label>
+                  <Input
+                    id="afternoon_qty"
+                    type="number"
+                    value={formData.afternoon_qty}
+                    onChange={(e) => handleChange('afternoon_qty', e.target.value)}
+                    placeholder="0"
+                    className="form-input"
+                    min="0"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="night_qty" className="text-xs text-muted-foreground">
+                    Night
+                  </Label>
+                  <Input
+                    id="night_qty"
+                    type="number"
+                    value={formData.night_qty}
+                    onChange={(e) => handleChange('night_qty', e.target.value)}
+                    placeholder="0"
+                    className="form-input"
+                    min="0"
+                  />
+                </div>
               </div>
             </div>
 

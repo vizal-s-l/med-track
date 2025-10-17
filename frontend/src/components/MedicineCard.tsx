@@ -104,7 +104,7 @@ export default function MedicineCard({ medicine, onEdit, onDelete }: MedicineCar
         {medicine.nextDue && (
           <div className="pt-2 border-t border-border">
             <p className="text-xs text-muted-foreground">
-              Next dose: <span className="text-foreground font-medium">{medicine.nextDue}</span>
+              Next refill: <span className="text-foreground font-medium">{medicine.nextDue}</span>
             </p>
           </div>
         )}

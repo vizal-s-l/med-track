@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertTriangle, Plus, Heart, DollarSign, Package, Activity, LogOut, WifiOff, Settings } from "lucide-react";
+import { AlertTriangle, Plus, Heart, DollarSign, Package, Activity, LogOut, WifiOff } from "lucide-react";
 import MedicineCard from "@/components/MedicineCard";
 import HealthMetricCard from "@/components/HealthMetricCard";
 import EmptyState from "@/components/EmptyState";
@@ -20,7 +20,7 @@ import {
 } from "@/hooks/useApi";
 import { type Medicine, type HealthMetric } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 export default function Dashboard() {
   const [isAddMedicineOpen, setIsAddMedicineOpen] = useState(false);
@@ -130,37 +130,28 @@ export default function Dashboard() {
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0">
             <div className="min-w-0 flex items-center gap-3">
-              <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
+              <Link to="/" className="flex items-center gap-2 text-foreground hover:text-primary transition-colors">
+                <img src="/favicon.ico" alt="Home" className="w-6 h-6" />
+                <span className="text-sm font-semibold">Home</span>
+              </Link>
               <div>
-                <h1 className="text-xl sm:text-2xl font-bold text-foreground truncate">Home Med+ Tracker</h1>
+                <h1 className="text-xl sm:text-2xl font-bold text-foreground truncate">Med Tracker</h1>
                 <p className="text-sm sm:text-base text-muted-foreground hidden sm:block">
-                  Manage your family's health with confidence
-                  {!isConnected && <span className="text-destructive ml-2">(Offline)</span>}
+                  Track your medicines and health metrics
                 </p>
               </div>
             </div>
             <div className="flex items-center space-x-4">
               <span className="text-sm text-muted-foreground">
-                Welcome, {profile?.full_name || user?.email}
+                Welcome, {profile?.full_name || user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split('@')[0]}
               </span>
               <Button 
-                onClick={() => setIsAddMedicineOpen(true)}
-                className="btn-medical shrink-0 w-full sm:w-auto"
+                variant="ghost"
                 size="sm"
-                disabled={!isConnected}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Medicine
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => setIsTimingSettingsOpen(true)}
                 className="shrink-0"
-                disabled={!isConnected}
+                onClick={() => navigate('/')}
               >
-                <Settings className="h-4 w-4 mr-2" />
-                Settings
+                Home
               </Button>
               <Button 
                 variant="outline" 
@@ -336,9 +327,11 @@ export default function Dashboard() {
         </div>
 
         {/* Today's Intakes */}
-        <div className="mb-4 sm:mb-8">
-          <TodaysIntakes />
-        </div>
+        {false && (
+          <div className="mb-4 sm:mb-8">
+            <TodaysIntakes />
+          </div>
+        )}
       </main>
 
       {/* Add Medicine Modal */}

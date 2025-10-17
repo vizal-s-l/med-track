@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { SupabaseClient, User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
+import { requestFirebaseToken } from '@/lib/firebase';
 
 export interface UserProfile {
   id: string;
@@ -57,6 +58,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setUser(session?.user ?? null);
         if (session?.user) {
           await fetchProfile(session.user.id);
+          await registerPushToken();
         }
       }
       setLoading(false);
@@ -73,6 +75,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
         if (session?.user) {
           await fetchProfile(session.user.id);
+          await registerPushToken();
         } else {
           setProfile(null);
         }
@@ -98,6 +101,32 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     } catch (error) {
       console.error('Error fetching profile:', error);
+    }
+  };
+
+  const registerPushToken = async () => {
+    try {
+      const permission = await Notification.requestPermission();
+
+      if (permission !== 'granted') {
+        return;
+      }
+
+      const token = await requestFirebaseToken();
+
+      if (!token) {
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('push_subscriptions')
+        .upsert({ token });
+
+      if (error) {
+        console.error('Error storing push token:', error);
+      }
+    } catch (error) {
+      console.error('Failed to register push token:', error);
     }
   };
 

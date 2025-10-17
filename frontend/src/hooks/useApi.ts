@@ -1,6 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { medicineApi, healthMetricApi, apiHealthCheck, type Medicine, type HealthMetric } from '@/lib/api';
-import { supabase } from '@/lib/supabase';
+import {
+  medicineApi,
+  healthMetricApi,
+  apiHealthCheck,
+  type Medicine,
+  type HealthMetric,
+} from '@/lib/api';
+import { callApi, supabase } from '@/lib/supabase';
 
 // Query keys
 export const QUERY_KEYS = {
@@ -87,13 +93,14 @@ export const useTimingSettings = () => {
   return useQuery({
     queryKey: ['timingSettings'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('user_timing_settings')
-        .select('*')
-        .single();
-
-      if (error && error.code !== 'PGRST116') throw error;
-      return data;
+      try {
+        return await callApi('/reminders/settings');
+      } catch (error: any) {
+        if (error.message?.includes('404')) {
+          return null;
+        }
+        throw error;
+      }
     },
   });
 };
@@ -103,19 +110,18 @@ export const useUpdateTimingSettings = () => {
 
   return useMutation({
     mutationFn: async (settings: {
-      morning_time: string;
-      afternoon_time: string;
-      night_time: string;
-      timezone: string;
+      morning_time?: string;
+      afternoon_time?: string;
+      night_time?: string;
+      enable_morning?: boolean;
+      enable_afternoon?: boolean;
+      enable_night?: boolean;
+      timezone?: string;
     }) => {
-      const { data, error } = await supabase
-        .from('user_timing_settings')
-        .upsert(settings)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
+      return callApi('/reminders/settings', {
+        method: 'POST',
+        body: JSON.stringify(settings),
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['timingSettings'] });
@@ -147,34 +153,8 @@ export const useIntakes = (date?: string) => {
   return useQuery({
     queryKey: ['intakes', date],
     queryFn: async () => {
-      let query = supabase
-        .from('intakes')
-        .select(`
-          *,
-          medicines (
-            id,
-            name,
-            morning_qty,
-            afternoon_qty,
-            night_qty
-          )
-        `);
-
-      if (date) {
-        // Get intakes for a specific date
-        const startOfDay = new Date(date);
-        startOfDay.setHours(0, 0, 0, 0);
-        const endOfDay = new Date(date);
-        endOfDay.setHours(23, 59, 59, 999);
-
-        query = query
-          .gte('scheduled_time', startOfDay.toISOString())
-          .lte('scheduled_time', endOfDay.toISOString());
-      }
-
-      const { data, error } = await query.order('scheduled_time', { ascending: true });
-
-      if (error) throw error;
+      const params = date ? `?date=${date}` : '';
+      const data = await callApi(`/intakes${params}`);
       return data as Intake[];
     },
   });
@@ -185,14 +165,10 @@ export const useCreateIntake = () => {
 
   return useMutation({
     mutationFn: async (intake: Omit<Intake, 'id' | 'created_at' | 'updated_at'>) => {
-      const { data, error } = await supabase
-        .from('intakes')
-        .insert(intake)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
+      return callApi('/intakes', {
+        method: 'POST',
+        body: JSON.stringify(intake),
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['intakes'] });
@@ -205,15 +181,10 @@ export const useUpdateIntake = () => {
 
   return useMutation({
     mutationFn: async ({ id, ...updates }: { id: string } & Partial<Intake>) => {
-      const { data, error } = await supabase
-        .from('intakes')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
+      return callApi(`/intakes/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(updates),
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['intakes'] });

@@ -1,10 +1,9 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Activity, Heart, Weight, Droplet } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface LogHealthMetricModalProps {
@@ -13,71 +12,102 @@ interface LogHealthMetricModalProps {
   onSave: (metric: any) => void;
 }
 
-export default function LogHealthMetricModal({ isOpen, onClose, onSave }: LogHealthMetricModalProps) {
-  const { toast } = useToast();
-  const [formData, setFormData] = useState({
-    type: "",
-    value: "",
-    date: new Date().toISOString().split('T')[0],
-    time: new Date().toTimeString().slice(0, 5),
+const IST_TIMEZONE = "Asia/Kolkata";
+
+const formatLocalValue = (date: Date) => {
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: IST_TIMEZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
   });
 
-  const getUnitForType = (type: string) => {
-    switch (type) {
-      case 'blood_pressure': return 'mmHg';
-      case 'blood_sugar_fasting':
-      case 'blood_sugar_after_food': 
-      case 'blood_sugar_random': return 'mg/dL';
-      case 'weight': return 'kg';
-      default: return '';
+  const parts = formatter.formatToParts(date).reduce<Record<string, string>>((acc, part) => {
+    if (part.type !== 'literal') {
+      acc[part.type] = part.value;
     }
-  };
+    return acc;
+  }, {});
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
+  return `${parts.year}-${parts.month}-${parts.day}`;
+};
 
-  const handleSelectChange = (name: string, value: string) => {
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
+const formatLocalTime = (date: Date) => {
+  const formatter = new Intl.DateTimeFormat('en-GB', {
+    timeZone: IST_TIMEZONE,
+    hour12: false,
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+  return formatter.format(date);
+};
+
+const toIstISOString = (date: string, time: string) => `${date}T${time}:00+05:30`;
+
+export default function LogHealthMetricModal({ isOpen, onClose, onSave }: LogHealthMetricModalProps) {
+  const { toast } = useToast();
+  const [profileData, setProfileData] = useState({
+    systolic: '',
+    diastolic: '',
+    heartbeat: '',
+  });
+
+  const [sugarData, setSugarData] = useState({
+    sugar_context: '',
+    sugar_value: '',
+  });
+
+  const initialDate = useMemo(() => formatLocalValue(new Date()), []);
+  const initialTime = useMemo(() => formatLocalTime(new Date()), []);
+
+  const [recordedAt, setRecordedAt] = useState({
+    date: initialDate,
+    time: initialTime,
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!formData.type || !formData.value) {
+
+    const hasPressure = profileData.systolic && profileData.diastolic && profileData.heartbeat;
+    const hasSugar = sugarData.sugar_context && sugarData.sugar_value;
+
+    if (!hasPressure && !hasSugar) {
       toast({
         title: "Missing Information",
-        description: "Please select a metric type and enter a value.",
+        description: "Provide blood pressure or blood sugar details.",
         variant: "destructive",
       });
       return;
     }
 
-    const newMetric = {
-      id: Date.now().toString(),
-      type: formData.type as 'blood_pressure' | 'blood_sugar_fasting' | 'blood_sugar_after_food' | 'blood_sugar_random' | 'weight',
-      value: formData.value,
-      unit: getUnitForType(formData.type),
-      date: formData.date,
-      time: formData.time,
-      trend: "stable" as const,
-      status: "normal" as const
+    const payload: any = {
+      type: hasPressure && hasSugar ? 'combined' : hasPressure ? 'blood_pressure' : 'blood_sugar',
+      recorded_at: toIstISOString(recordedAt.date, recordedAt.time),
     };
 
-    onSave(newMetric);
-    
-    // Reset form
-    setFormData({
-      type: "",
-      value: "",
-      date: new Date().toISOString().split('T')[0],
-      time: new Date().toTimeString().slice(0, 5),
+    if (hasPressure) {
+      payload.systolic = Number(profileData.systolic);
+      payload.diastolic = Number(profileData.diastolic);
+      payload.heartbeat = Number(profileData.heartbeat);
+    }
+
+    if (hasSugar) {
+      payload.sugar_context = sugarData.sugar_context as 'fasting' | 'after_food' | 'random';
+      payload.sugar_value = Number(sugarData.sugar_value);
+    }
+
+    onSave(payload);
+
+    setProfileData({ systolic: '', diastolic: '', heartbeat: '' });
+    setSugarData({ sugar_context: '', sugar_value: '' });
+    setRecordedAt({
+      date: formatLocalValue(new Date()),
+      time: formatLocalTime(new Date()),
     });
 
     toast({
       title: "Metric Logged",
-      description: `Your ${formData.type.replace('_', ' ')} has been recorded successfully.`,
+      description: "Health data recorded successfully.",
     });
   };
 
@@ -85,50 +115,83 @@ export default function LogHealthMetricModal({ isOpen, onClose, onSave }: LogHea
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle className="text-center">📊 Log Health Metric</DialogTitle>
-          <p className="text-sm text-muted-foreground text-center">Track your health metrics to monitor your progress</p>
+          <DialogTitle className="text-center">Log Health Metric</DialogTitle>
+          <p className="text-sm text-muted-foreground text-center">Record accurate readings to monitor your wellness trends.</p>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="bg-muted/50 p-4 rounded-lg">
-            <Label htmlFor="type" className="text-base font-medium">What would you like to track?</Label>
-            <Select name="type" value={formData.type} onValueChange={(value) => handleSelectChange('type', value)}>
-              <SelectTrigger className="mt-2">
-                <SelectValue placeholder="Choose a metric type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="blood_pressure">🩺 Blood Pressure</SelectItem>
-                <SelectItem value="blood_sugar_fasting">🍯 Blood Sugar - Fasting</SelectItem>
-                <SelectItem value="blood_sugar_after_food">🍯 Blood Sugar - After Food</SelectItem>
-                <SelectItem value="blood_sugar_random">🍯 Blood Sugar - Random</SelectItem>
-                <SelectItem value="weight">⚖️ Weight</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <div className="grid gap-6">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-base font-medium">Blood Pressure (optional)</Label>
+                <span className="text-xs text-muted-foreground">Provide all three values</span>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <Label htmlFor="systolic" className="text-sm">Systolic</Label>
+                  <Input
+                    id="systolic"
+                    type="number"
+                    min={0}
+                    value={profileData.systolic}
+                    onChange={(e) => setProfileData((prev) => ({ ...prev, systolic: e.target.value }))}
+                    placeholder="120"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="diastolic" className="text-sm">Diastolic</Label>
+                  <Input
+                    id="diastolic"
+                    type="number"
+                    min={0}
+                    value={profileData.diastolic}
+                    onChange={(e) => setProfileData((prev) => ({ ...prev, diastolic: e.target.value }))}
+                    placeholder="80"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="heartbeat" className="text-sm">Heartbeat</Label>
+                  <Input
+                    id="heartbeat"
+                    type="number"
+                    min={0}
+                    value={profileData.heartbeat}
+                    onChange={(e) => setProfileData((prev) => ({ ...prev, heartbeat: e.target.value }))}
+                    placeholder="72"
+                  />
+                </div>
+              </div>
+            </div>
 
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="value" className="text-base font-medium">
-                {formData.type === 'blood_pressure' ? 'Blood Pressure Reading' :
-                 formData.type.startsWith('blood_sugar') ? 'Blood Sugar Level' :
-                 formData.type === 'weight' ? 'Weight' : 'Value'}
-              </Label>
-              <div className="flex gap-2 mt-2">
-                <Input
-                  id="value"
-                  name="value"
-                  value={formData.value}
-                  onChange={handleChange}
-                  placeholder={
-                    formData.type === 'blood_pressure' ? '120/80' :
-                    formData.type.startsWith('blood_sugar') ? '95' :
-                    formData.type === 'weight' ? '70.5' : 'Enter value'
-                  }
-                  className="flex-1"
-                  required
-                />
-                <div className="bg-muted px-3 py-2 rounded-md flex items-center text-sm font-medium min-w-fit">
-                  {getUnitForType(formData.type)}
+            <div className="space-y-3">
+              <Label className="text-base font-medium">Blood Sugar (optional)</Label>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label htmlFor="sugar_context" className="text-sm">Context</Label>
+                  <Select
+                    value={sugarData.sugar_context}
+                    onValueChange={(value) => setSugarData((prev) => ({ ...prev, sugar_context: value }))}
+                  >
+                    <SelectTrigger id="sugar_context">
+                      <SelectValue placeholder="Select" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="fasting">Fasting</SelectItem>
+                      <SelectItem value="after_food">After Food</SelectItem>
+                      <SelectItem value="random">Random</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="sugar_value" className="text-sm">Value (mg/dL)</Label>
+                  <Input
+                    id="sugar_value"
+                    type="number"
+                    min={0}
+                    value={sugarData.sugar_value}
+                    onChange={(e) => setSugarData((prev) => ({ ...prev, sugar_value: e.target.value }))}
+                    placeholder="95"
+                  />
                 </div>
               </div>
             </div>
@@ -140,8 +203,8 @@ export default function LogHealthMetricModal({ isOpen, onClose, onSave }: LogHea
                   id="date"
                   name="date"
                   type="date"
-                  value={formData.date}
-                  onChange={handleChange}
+                  value={recordedAt.date}
+                  onChange={(e) => setRecordedAt((prev) => ({ ...prev, date: e.target.value }))}
                   className="mt-2"
                   required
                 />
@@ -152,8 +215,8 @@ export default function LogHealthMetricModal({ isOpen, onClose, onSave }: LogHea
                   id="time"
                   name="time"
                   type="time"
-                  value={formData.time}
-                  onChange={handleChange}
+                  value={recordedAt.time}
+                  onChange={(e) => setRecordedAt((prev) => ({ ...prev, time: e.target.value }))}
                   className="mt-2"
                   required
                 />
@@ -166,7 +229,7 @@ export default function LogHealthMetricModal({ isOpen, onClose, onSave }: LogHea
               Cancel
             </Button>
             <Button type="submit" className="btn-medical flex-1">
-              📊 Log Metric
+              Log Metric
             </Button>
           </div>
         </form>

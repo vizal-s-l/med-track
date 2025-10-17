@@ -77,14 +77,30 @@ export default function HealthMetricCard({ metric, onClick }: HealthMetricCardPr
       </div>
 
       <div className="space-y-2">
-        <div className="flex items-baseline gap-1">
-          <span className="text-xl font-bold">{metric.value}</span>
-          <span className="text-sm opacity-80">{metric.unit}</span>
+        <div className="space-y-1 text-sm text-muted-foreground">
+          {metric.systolic && metric.diastolic && (
+            <p>
+              Blood Pressure: <span className="font-medium text-foreground">{metric.systolic}/{metric.diastolic} mmHg</span>
+            </p>
+          )}
+          {metric.heartbeat && (
+            <p>
+              Heart Rate: <span className="font-medium text-foreground">{metric.heartbeat} bpm</span>
+            </p>
+          )}
+          {metric.sugar_value && (
+            <p>
+              Blood Sugar: <span className="font-medium text-foreground">{metric.sugar_value} mg/dL</span>
+              {metric.sugar_context && (
+                <span className="ml-1 capitalize">({metric.sugar_context.replace('_', ' ')})</span>
+              )}
+            </p>
+          )}
         </div>
 
-        <div className="flex items-center justify-between">
-          <p className="text-xs opacity-75">
-            {metric.date} at {metric.time}
+        <div className="flex items-center justify-between text-xs">
+          <p className="opacity-75">
+            Recorded {new Date(metric.recorded_at).toLocaleString()}
           </p>
           {getStatusBadge()}
         </div>

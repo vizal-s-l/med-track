@@ -81,7 +81,7 @@ export default function AddMedicineModal({ isOpen, onClose, onSave, editingMedic
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md animate-scale-in">
-        <DialogHeader className="flex flex-row items-center justify-between">
+        <DialogHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="flex items-center gap-2">
             <div className="p-2 bg-primary-light rounded-lg">
               <Pill className="h-4 w-4 text-primary" />

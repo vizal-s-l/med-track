@@ -55,6 +55,7 @@ CREATE TABLE IF NOT EXISTS intakes (
   status TEXT CHECK (status IN ('scheduled', 'taken', 'missed', 'skipped')) NOT NULL DEFAULT 'scheduled',
   quantity INTEGER NOT NULL DEFAULT 1,
   notes TEXT,
+  stock_adjusted BOOLEAN NOT NULL DEFAULT false,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -64,13 +65,15 @@ CREATE TABLE IF NOT EXISTS health_metrics (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
   type TEXT NOT NULL,
-  value TEXT NOT NULL,
-  unit TEXT NOT NULL,
-  date TEXT NOT NULL,
-  time TEXT NOT NULL,
+  recorded_at TIMESTAMP WITH TIME ZONE NOT NULL,
+  systolic INTEGER,
+  diastolic INTEGER,
+  heartbeat INTEGER,
+  sugar_context TEXT,
+  sugar_value NUMERIC,
+  notes TEXT,
   trend TEXT DEFAULT 'stable',
   status TEXT DEFAULT 'normal',
-  notes TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -105,6 +108,7 @@ CREATE POLICY "Users can update own timing settings" ON user_timing_settings FOR
 CREATE POLICY "Users can view own intakes" ON intakes FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users can insert own intakes" ON intakes FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can update own intakes" ON intakes FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can delete own intakes" ON intakes FOR DELETE USING (auth.uid() = user_id);
 
 -- Function to handle new user signup
 CREATE OR REPLACE FUNCTION public.handle_new_user()

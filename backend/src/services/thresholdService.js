@@ -7,14 +7,14 @@ const thresholdService = {
       return;
     }
 
-    nodeCron.schedule('30 1 * * *', async () => {
+    nodeCron.schedule('15 2 * * *', async () => {
       try {
         await thresholdController.runThresholdCheck();
       } catch (error) {
         console.error('Threshold scheduler error:', error);
       }
     }, {
-      timezone: process.env.CRON_TIMEZONE || 'UTC',
+      timezone: process.env.CRON_TIMEZONE || 'Asia/Kolkata',
     });
   },
 };

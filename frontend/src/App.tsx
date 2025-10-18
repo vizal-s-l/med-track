@@ -14,6 +14,7 @@ import NotFound from "./pages/NotFound";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import HelpSupport from "./pages/HelpSupport";
+import HealthMetricsPage from "./pages/HealthMetricsPage";
 
 const queryClient = new QueryClient();
 
@@ -33,6 +34,7 @@ const App = () => (
             <Route path="/privacy" element={<PrivacyPolicy />} />
             <Route path="/terms" element={<TermsOfService />} />
             <Route path="/support" element={<HelpSupport />} />
+            <Route path="/health-metrics" element={<HealthMetricsPage />} />
 
             {/* Protected routes */}
             <Route

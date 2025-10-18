@@ -305,7 +305,12 @@ export default function Dashboard() {
                     ))}
                     {healthMetrics.length > 3 && (
                       <div className="text-center pt-2">
-                        <Button variant="ghost" size="sm" className="text-muted-foreground">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-muted-foreground"
+                          onClick={() => navigate('/health-metrics')}
+                        >
                           View all {healthMetrics.length} records →
                         </Button>
                       </div>

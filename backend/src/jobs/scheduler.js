@@ -8,6 +8,11 @@ const startScheduler = () => {
   }
 
   reminderService.scheduleReminders();
+
+  if (!process.env.CRON_SECRET) {
+    console.warn('CRON_SECRET missing; internal threshold endpoint will be unsecured');
+  }
+
   thresholdService.scheduleThresholdChecks();
 };
 

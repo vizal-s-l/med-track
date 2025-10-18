@@ -10,6 +10,7 @@ const intakeRoutes = require('./routes/intakeRoutes');
 const healthMetricRoutes = require('./routes/healthMetricRoutes');
 const reminderRoutes = require('./routes/reminderRoutes');
 const { authenticateUser } = require('./middlewares/authMiddleware');
+const { thresholdController } = require('./controllers/thresholdController');
 
 const app = express();
 
@@ -28,6 +29,21 @@ app.use('/api/medicines', authenticateUser, medicineRoutes);
 app.use('/api/intakes', authenticateUser, intakeRoutes);
 app.use('/api/health-metrics', authenticateUser, healthMetricRoutes);
 app.use('/api/reminders', authenticateUser, reminderRoutes);
+
+app.post('/api/internal/threshold-check', async (req, res) => {
+  try {
+    const authHeader = req.headers['x-cron-secret'];
+    if (!authHeader || authHeader !== process.env.CRON_SECRET) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    await thresholdController.runThresholdCheck();
+    res.status(200).json({ status: 'OK' });
+  } catch (error) {
+    console.error('Manual threshold check failed:', error);
+    res.status(500).json({ error: 'Threshold check failed' });
+  }
+});
 
 app.get('/health', (req, res) => {
   res.status(200).json({

@@ -56,15 +56,21 @@ const notificationService = {
   sendThresholdEmail: async ({ to, subject, text }) => {
     if (!process.env.SENDGRID_API_KEY || !process.env.SENDGRID_SENDER_EMAIL) {
       console.warn('SendGrid credentials missing; skipping email');
-      return;
+      return false;
     }
 
-    await sgMail.send({
-      to,
-      from: process.env.SENDGRID_SENDER_EMAIL,
-      subject,
-      text,
-    });
+    try {
+      await sgMail.send({
+        to,
+        from: process.env.SENDGRID_SENDER_EMAIL,
+        subject,
+        text,
+      });
+      return true;
+    } catch (error) {
+      console.error('Failed to send threshold email:', error);
+      return false;
+    }
   },
 };
 
